@@ -171,21 +171,22 @@ func WithContext(ctx context.Context) *Entry {
 
 // Define logrus alias
 var (
-	Tracef     = logrus.Tracef
-	Debugf     = logrus.Debugf
-	Debugln    = logrus.Debugln
-	Infof      = logrus.Infof
-	Infoln     = logrus.Infoln
-	Warnf      = logrus.Warnf
-	Warnln     = logrus.Warnln
-	Errorf     = logrus.Errorf
-	Errorln    = logrus.Errorln
-	Fatalf     = logrus.Fatalf
-	Fatalln    = logrus.Fatalln
-	Panicf     = logrus.Panicf
-	Panic      = logrus.Panic
-	Println    = logrus.Println
-	WithFields = logrus.WithFields
-	WithField  = logrus.WithField
-	Error      = logrus.Error
+	Tracef         = logrus.Tracef
+	Debugf         = logrus.Debugf
+	Debugln        = logrus.Debugln
+	Infof          = logrus.Infof
+	Infoln         = logrus.Infoln
+	Warnf          = logrus.Warnf
+	Warnln         = logrus.Warnln
+	Errorf         = logrus.Errorf
+	Errorln        = logrus.Errorln
+	Fatalf         = logrus.Fatalf
+	Fatalln        = logrus.Fatalln
+	Panicf         = logrus.Panicf
+	Panic          = logrus.Panic
+	Println        = logrus.Println
+	WithFields     = logrus.WithFields
+	WithField      = logrus.WithField
+	Error          = logrus.Error
+	IsLevelEnabled = logrus.IsLevelEnabled
 )
