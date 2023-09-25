@@ -1,73 +1,93 @@
 package logger
 
 import (
+	"io"
+	"log/slog"
 	"os"
 	"time"
 
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
+	"github.com/sirupsen/logrus"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-// LogHook 日志钩子
-type LogHook string
-
-// IsGorm 是否是gorm钩子
-func (h LogHook) IsGorm() bool {
-	return h == "gormdb"
+func InitLogger(cfg Config) {
+	slog.SetDefault(newSlog(cfg))
+	defaultLogger.Store(&Logger{logger: slog.Default(), syslog: cfg.Syslog})
 }
 
-// IsMongo 是否是mongo钩子
-func (h LogHook) IsMongo() bool {
-	return h == "mongo"
+func NewLogger(cfg Config) *Logger {
+	return &Logger{logger: newSlog(cfg), syslog: cfg.Syslog}
 }
 
-// Log 日志配置参数
-type Log struct {
-	Level         int
-	Format        string
-	Output        string
-	OutputFile    string
-	MaxAge        int   // 日志最大保存分钟
-	RotationTime  int   // 日志分割分钟
-	RotationSize  int64 // 日志分割文件大小
-	RotationCount uint  // 日志保存个数
-	EnableHook    bool
-	HookLevels    []string
-	Hook          LogHook
-	HookMaxThread int
-	HookMaxBuffer int
+func newSlog(cfg Config) *slog.Logger {
+	var out io.Writer
+	out = os.Stdout
+	if cfg.Output != "" {
+		switch cfg.Output {
+		case "stdout":
+			out = os.Stdout
+		case "stderr":
+			out = os.Stderr
+		case "file":
+			if name := cfg.OutputFile; name != "" {
+				out = &lumberjack.Logger{
+					Filename:   cfg.OutputFile,
+					MaxSize:    int(cfg.RotationSize), // megabytes
+					MaxBackups: int(cfg.RotationCount),
+					MaxAge:     cfg.MaxAge, //days
+					Compress:   true,       // disabled by default
+				}
+			}
+		}
+	}
+	var programLevel = new(slog.LevelVar)
+	programLevel.Set(getLevel(cfg.Level))
+	switch cfg.Format {
+	case "json":
+		return slog.New(slog.NewJSONHandler(out, &slog.HandlerOptions{Level: programLevel}))
+	default:
+		return slog.New(slog.NewTextHandler(out, &slog.HandlerOptions{Level: programLevel}))
+	}
 }
 
-// LogGormHook 日志gorm钩子配置
-type LogGormHook struct {
-	DBType       string
-	MaxLifetime  int
-	MaxOpenConns int
-	MaxIdleConns int
-	Table        string
+func getLevel(lev LogLevel) slog.Level {
+	switch lev {
+	case PanicLevel, FatalLevel:
+		fallthrough
+	case ErrorLevel:
+		return slog.LevelError
+	case WarnLevel:
+		return slog.LevelWarn
+	case InfoLevel:
+		return slog.LevelInfo
+	case DebugLevel:
+		return slog.LevelDebug
+	default:
+		return slog.LevelInfo
+	}
 }
 
-// NewLogger 创建日志模块
-func NewLogger(c Log) (func(), error) {
-	SetLevel(c.Level)
-	SetFormatter(c.Format)
-
+// Deprecated: 使用slog
+// NewLogger1 创建日志模块
+func NewLogger1(c Config) (func(), error) {
+	logrus.SetLevel(logrus.Level(c.Level))
+	switch c.Format {
+	case "json":
+		logrus.SetFormatter(new(logrus.JSONFormatter))
+	default:
+		logrus.SetFormatter(new(logrus.TextFormatter))
+	}
 	// 设定日志输出
 	//var file *os.File
 	if c.Output != "" {
 		switch c.Output {
 		case "stdout":
-			SetOutput(os.Stdout)
+			logrus.SetOutput(os.Stdout)
 		case "stderr":
-			SetOutput(os.Stderr)
+			logrus.SetOutput(os.Stderr)
 		case "file":
 			if name := c.OutputFile; name != "" {
-				//_ = os.MkdirAll(filepath.Dir(name), 0777)
-				//
-				//f, err := os.OpenFile(name, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0666)
-				//if err != nil {
-				//	return nil, err
-				//}
-				//file = f
 				writer, err := rotatelogs.New(
 					name+".%Y%m%d%H%M",
 					rotatelogs.WithLinkName(name), // 生成软链，指向最新日志文件
@@ -79,7 +99,7 @@ func NewLogger(c Log) (func(), error) {
 				if err != nil {
 					return nil, err
 				}
-				SetOutput(writer)
+				logrus.SetOutput(writer)
 			}
 		}
 	}
