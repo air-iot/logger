@@ -421,10 +421,7 @@ func getFields(ctx context.Context) []any {
 		if v := FromProjectContext(ctx); v != "" {
 			fields = append(fields, ProjectIdKey, v)
 		}
-		if v := FromModuleContext(ctx); v != "" {
-			fields = append(fields, ModuleKey, v)
-		}
-		fields = append(fields, logTypeKey, logTypeValue, logIdKey, primitive.NewObjectID().Hex(), LogDataKey, v)
+		fields = append(fields, logTypeKey, logTypeValue, logIdKey, primitive.NewObjectID().Hex(), ModuleKey, v)
 	}
 	return fields
 }
