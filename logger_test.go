@@ -68,21 +68,31 @@ func Test_ctx(t *testing.T) {
 
 func Test_syslog(t *testing.T) {
 	ctx := context.Background()
+	Debugln("a")
+	DebugContext(ctx, "11")
+	WithContext(ctx).Debugln("12")
 	ctx = NewModuleContext(ctx, "m")
-	SyslogDebug(ctx, map[string]interface{}{"a": 1}, "def,%d", 1)
-	SyslogInfo(ctx, map[string]interface{}{"a": 1}, "def,%d", 1)
-	SyslogWarn(ctx, map[string]interface{}{"a": 1}, "def,%d", 1)
-	SyslogError(ctx, map[string]interface{}{"a": 1}, "def,%d", 1)
+	WithContext(ctx).Debugln("13")
+	l := NewData(map[string]interface{}{"a": 1})
+	l.WithContext(ctx).Debugln(123)
+	l.DebugContext(ctx, "def,%d", 1)
+	l.InfoContext(ctx, "def,%d", 1)
+	l.WarnContext(ctx, "def,%d", 1)
+	l.ErrorContext(ctx, "def,%d", 1)
 	ctx = NewProjectContext(ctx, "project")
-	SyslogDebug(ctx, map[string]interface{}{"a": 1}, "def,%d", 1)
-	SyslogInfo(ctx, map[string]interface{}{"a": 1}, "def,%d", 1)
-	SyslogWarn(ctx, map[string]interface{}{"a": 1}, "def,%d", 1)
-	SyslogError(ctx, map[string]interface{}{"a": 1}, "def,%d", 1)
-
+	l.DebugContext(ctx, "def,%d", 1)
+	l.InfoContext(ctx, "def,%d", 1)
+	l.WarnContext(ctx, "def,%d", 1)
+	l.ErrorContext(ctx, "def,%d", 1)
 	type test struct {
 		Field string `json:"field"`
 	}
-	SyslogDebug(ctx, test{Field: "field"}, "def,%d", 1)
+	l = NewData(test{Field: "field"})
+	l.DebugContext(ctx, "def,%d", 1)
+	DebugContext(ctx, "def,%d", 1)
+	InfoContext(ctx, "def,%d", 1)
+	WarnContext(ctx, "def,%d", 1)
+	ErrorContext(ctx, "def,%d", 1)
 }
 
 func TestNewServiceContext(t *testing.T) {

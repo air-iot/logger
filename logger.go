@@ -3,12 +3,12 @@ package logger
 import (
 	"context"
 	"fmt"
+	"go.opentelemetry.io/otel/trace"
 	"log/slog"
 	"os"
 	"sync/atomic"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.opentelemetry.io/otel/trace"
 )
 
 var defaultLogger atomic.Value
@@ -86,10 +86,34 @@ func (l *Logger) Println(args ...any) {
 	l.logger.Info(msg[:len(msg)-1])
 }
 
+func (l *Logger) DebugContext(ctx context.Context, format string, args ...any) {
+	l.WithField(getFields(ctx)...).Debugf(format, args...)
+}
+
+func (l *Logger) InfoContext(ctx context.Context, format string, args ...any) {
+	l.WithField(getFields(ctx)...).Infof(format, args...)
+}
+
+func (l *Logger) WarnContext(ctx context.Context, format string, args ...any) {
+	l.WithField(getFields(ctx)...).Warnf(format, args...)
+}
+
+func (l *Logger) ErrorContext(ctx context.Context, format string, args ...any) {
+	l.WithField(getFields(ctx)...).Errorf(format, args...)
+}
+
 func (l *Logger) WithField(args ...any) *Logger {
 	c := *l
 	c.logger = l.logger.With(args...)
 	return &c
+}
+
+func (l *Logger) NewData(data any) *Logger {
+	return l.WithField(LogDataKey, data)
+}
+
+func (l *Logger) WithContext(ctx context.Context) *Logger {
+	return l.WithField(getFields(ctx)...)
 }
 
 func IsLevelEnabled(level LogLevel) bool {
@@ -148,40 +172,76 @@ func WithField(args ...any) *Logger {
 	return Default().WithField(args...)
 }
 
-func withSyslogContext(ctx context.Context, data any) *Logger {
-	spanCtx := trace.SpanContextFromContext(ctx)
-	var traceID, spanID string
-	if spanCtx.HasTraceID() {
-		traceID = spanCtx.TraceID().String()
-	}
-	if spanCtx.HasSpanID() {
-		spanID = spanCtx.SpanID().String()
-	}
-	return WithField(logTypeKey, logTypeValue, logIdKey, primitive.NewObjectID().Hex(), ServiceKey, FromServiceContext(ctx),
-		ProjectIdKey, FromProjectContext(ctx), ModuleKey, FromModuleContext(ctx), LogDataKey, data, traceIdKey, traceID, spanIdKey, spanID)
+func DebugContext(ctx context.Context, format string, args ...any) {
+	Default().DebugContext(ctx, format, args...)
 }
 
-func SyslogDebug(ctx context.Context, data any, format string, args ...any) {
-	withSyslogContext(ctx, data).Debugf(format, args...)
+func InfoContext(ctx context.Context, format string, args ...any) {
+	Default().InfoContext(ctx, format, args...)
 }
 
-func SyslogInfo(ctx context.Context, data any, format string, args ...any) {
-	withSyslogContext(ctx, data).Infof(format, args...)
+func WarnContext(ctx context.Context, format string, args ...any) {
+	Default().WarnContext(ctx, format, args...)
 }
 
-func SyslogWarn(ctx context.Context, data any, format string, args ...any) {
-	withSyslogContext(ctx, data).Warnf(format, args...)
+func ErrorContext(ctx context.Context, format string, args ...any) {
+	Default().ErrorContext(ctx, format, args...)
 }
 
-func SyslogError(ctx context.Context, data any, format string, args ...any) {
-	withSyslogContext(ctx, data).Errorf(format, args...)
+func NewData(data any) *Logger {
+	return WithField(LogDataKey, data)
 }
+
+//func withSyslogContext(ctx context.Context, data any) *Logger {
+//	spanCtx := trace.SpanContextFromContext(ctx)
+//	var traceID, spanID string
+//	if spanCtx.HasTraceID() {
+//		traceID = spanCtx.TraceID().String()
+//	}
+//	if spanCtx.HasSpanID() {
+//		spanID = spanCtx.SpanID().String()
+//	}
+//	return WithField(logTypeKey, logTypeValue, logIdKey, primitive.NewObjectID().Hex(), ServiceKey, FromServiceContext(ctx),
+//		ProjectIdKey, FromProjectContext(ctx), ModuleKey, FromModuleContext(ctx), LogDataKey, data, traceIdKey, traceID, spanIdKey, spanID)
+//}
+
+//func SyslogDataDebug(ctx context.Context, data any, format string, args ...any) {
+//	withSyslogContext(ctx, data).Debugf(format, args...)
+//}
+//
+//func SyslogDataInfo(ctx context.Context, data any, format string, args ...any) {
+//	withSyslogContext(ctx, data).Infof(format, args...)
+//}
+//
+//func SyslogDataWarn(ctx context.Context, data any, format string, args ...any) {
+//	withSyslogContext(ctx, data).Warnf(format, args...)
+//}
+//
+//func SyslogDataError(ctx context.Context, data any, format string, args ...any) {
+//	withSyslogContext(ctx, data).Errorf(format, args...)
+//}
+//
+//func SyslogDebug(ctx context.Context, format string, args ...any) {
+//	SyslogDataDebug(ctx, "", format, args...)
+//}
+//
+//func SyslogInfo(ctx context.Context, format string, args ...any) {
+//	SyslogDataInfo(ctx, "", format, args...)
+//}
+//
+//func SyslogWarn(ctx context.Context, format string, args ...any) {
+//	SyslogDataWarn(ctx, "", format, args...)
+//}
+//
+//func SyslogError(ctx context.Context, format string, args ...any) {
+//	SyslogDataError(ctx, "", format, args...)
+//}
 
 const (
-	TraceIDKey   = "trace_id"
-	UserIDKey    = "user_id"
-	TagKey       = "tag"
-	VersionKey   = "version"
+	TraceIDKey = "trace_id"
+	UserIDKey  = "user_id"
+	TagKey     = "tag"
+	//VersionKey   = "version"
 	StackKey     = "stack"
 	ServiceKey   = "service"
 	ModuleKey    = "module"
@@ -321,10 +381,14 @@ func FromStackContext(ctx context.Context) error {
 
 // WithContext Use context create entry
 func WithContext(ctx context.Context) *Logger {
+	return Default().WithContext(ctx)
+}
+
+func getFields(ctx context.Context) []any {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	fields := []any{VersionKey, version}
+	fields := make([]any, 0)
 	if v := FromTraceIDContext(ctx); v != "" {
 		fields = append(fields, TraceIDKey, v)
 	}
@@ -337,5 +401,24 @@ func WithContext(ctx context.Context) *Logger {
 	if v := FromStackContext(ctx); v != nil {
 		fields = append(fields, StackKey, fmt.Sprintf("%+v", v))
 	}
-	return WithField(fields...)
+	spanCtx := trace.SpanContextFromContext(ctx)
+	if spanCtx.HasTraceID() {
+		fields = append(fields, traceIdKey, spanCtx.TraceID().String())
+	}
+	if spanCtx.HasSpanID() {
+		fields = append(fields, spanIdKey, spanCtx.SpanID().String())
+	}
+	if v := FromModuleContext(ctx); v != "" {
+		if v := FromServiceContext(ctx); v != "" {
+			fields = append(fields, ServiceKey, v)
+		}
+		if v := FromProjectContext(ctx); v != "" {
+			fields = append(fields, ProjectIdKey, v)
+		}
+		if v := FromModuleContext(ctx); v != "" {
+			fields = append(fields, ModuleKey, v)
+		}
+		fields = append(fields, logTypeKey, logTypeValue, logIdKey, primitive.NewObjectID().Hex(), LogDataKey, v)
+	}
+	return fields
 }
