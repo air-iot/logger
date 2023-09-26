@@ -7,8 +7,6 @@ import (
 	"log/slog"
 	"os"
 	"sync/atomic"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var defaultLogger atomic.Value
@@ -421,7 +419,7 @@ func getFields(ctx context.Context) []any {
 		if v := FromProjectContext(ctx); v != "" {
 			fields = append(fields, ProjectIdKey, v)
 		}
-		fields = append(fields, logTypeKey, logTypeValue, logIdKey, primitive.NewObjectID().Hex(), ModuleKey, v)
+		fields = append(fields, logTypeKey, logTypeValue, ModuleKey, v)
 	}
 	return fields
 }
