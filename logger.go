@@ -192,6 +192,12 @@ func NewData(data any) *Logger {
 	return WithField(LogDataKey, data)
 }
 
+func NewDataContext(ctx context.Context, data any) *Logger {
+	fields := getFields(ctx)
+	fields = append(fields, LogDataKey, data)
+	return WithField(fields...)
+}
+
 //func withSyslogContext(ctx context.Context, data any) *Logger {
 //	spanCtx := trace.SpanContextFromContext(ctx)
 //	var traceID, spanID string

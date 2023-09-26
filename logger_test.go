@@ -2,6 +2,7 @@ package logger
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"testing"
@@ -49,6 +50,8 @@ func Test_Slog(t *testing.T) {
 	slog.Info("1", slog.Any("a", map[string]interface{}{"b": 11}), slog.Time("times", time.Now().Local()))
 	slog.Warn("1", slog.Any("a", map[string]interface{}{"b": 11}), slog.Time("times", time.Now().Local()))
 	slog.Error("1", slog.Any("a", map[string]interface{}{"b": 11}), slog.Time("times", time.Now().Local()))
+
+	slog.With(map[string]interface{}{"a": 1}).Debug("12")
 }
 
 func Test_diff(t *testing.T) {
@@ -93,6 +96,16 @@ func Test_syslog(t *testing.T) {
 	InfoContext(ctx, "def,%d", 1)
 	WarnContext(ctx, "def,%d", 1)
 	ErrorContext(ctx, "def,%d", 1)
+	l = NewDataContext(ctx, "data-----------")
+	l.Debugln(123)
+	l.WithContext(ctx).Debugln(123)
+	str := `{"time":"2023-09-26T13:32:12.7023112+08:00","level":"DEBUG","msg":"123","service":"test","projectId":"project","module":"m","logType":"__syslog__","id":"65126cdcb84d6fcb17cf46af","data":"m","data":"data-----------"}`
+	m := map[string]interface{}{}
+	err := json.Unmarshal([]byte(str), &m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(m)
 }
 
 func TestNewServiceContext(t *testing.T) {
