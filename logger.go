@@ -412,14 +412,14 @@ func getFields(ctx context.Context) []any {
 	if spanCtx.HasSpanID() {
 		fields = append(fields, spanIdKey, spanCtx.SpanID().String())
 	}
+	if v := FromServiceContext(ctx); v != "" {
+		fields = append(fields, logTypeKey, logTypeValue, ServiceKey, v)
+	}
 	if v := FromModuleContext(ctx); v != "" {
-		if v := FromServiceContext(ctx); v != "" {
-			fields = append(fields, ServiceKey, v)
-		}
-		if v := FromProjectContext(ctx); v != "" {
-			fields = append(fields, ProjectIdKey, v)
-		}
-		fields = append(fields, logTypeKey, logTypeValue, ModuleKey, v)
+		fields = append(fields, ModuleKey, v)
+	}
+	if v := FromProjectContext(ctx); v != "" {
+		fields = append(fields, ProjectIdKey, v)
 	}
 	return fields
 }
