@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"os"
 	"testing"
 	"time"
 
@@ -23,6 +24,7 @@ func TestLog(t *testing.T) {
 	t.Log(IsLevelEnabled(DebugLevel))
 	WithField("field", "field1").Debugf("debug,%d", 1)
 	WithField("field2", "field22").WithField("field3", "field33").Debugln(1)
+	SetLevel(InfoLevel)
 	Debugf("Debugf,%d", 1)
 	Debugln(1)
 	Infof("Infof,%d", 2)
@@ -42,7 +44,7 @@ func TestNewLogger(t *testing.T) {
 	l.Debugln(123)
 	l.WithField("a", 1).Debugln(1234)
 	l.WithField("b", 2).Debugln(12345)
-	l = NewLogger(Config{Level: InfoLevel, Output: "stdout", Format: "json"})
+	l.SetLevel(DebugLevel)
 	l.Debugln(123)
 	l.Infoln(123)
 	l.Warnln(123)
@@ -120,4 +122,31 @@ func TestNewServiceContext(t *testing.T) {
 	ctx = NewUserIDContext(ctx, "admin")
 	ctx = NewExtraKeyContext(ctx, "extraKey")
 	WithContext(ctx).Println(12)
+}
+
+func TestLevel(t *testing.T) {
+	var programLevel = new(slog.LevelVar)
+	programLevel.Set(slog.LevelInfo)
+	l := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: programLevel}))
+	l.Debug("1")
+	l.Info("1")
+	l.Warn("1")
+	l.Error("1")
+	programLevel.Set(slog.LevelDebug)
+	l.Debug("1")
+	l.Info("1")
+	l.Warn("1")
+	l.Error("1")
+	programLevel.Set(slog.LevelInfo)
+	l.Debug("1")
+	l.Info("1")
+	l.Warn("1")
+	l.Error("1")
+}
+
+func TestSetLevel(t *testing.T) {
+	Debugln(1)
+	SetLevel(InfoLevel)
+	Debugln(2)
+	Infoln(2)
 }

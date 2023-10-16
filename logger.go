@@ -20,8 +20,13 @@ func Default() *Logger { return defaultLogger.Load().(*Logger) }
 
 // Logger slog官方库
 type Logger struct {
-	logger *slog.Logger
-	syslog Syslog
+	logger   *slog.Logger
+	syslog   Syslog
+	levelVar *slog.LevelVar
+}
+
+func (l *Logger) SetLevel(logLevel LogLevel) {
+	l.levelVar.Set(getLevel(logLevel))
 }
 
 func (l *Logger) IsLevelEnabled(lev LogLevel) bool {
@@ -112,6 +117,10 @@ func (l *Logger) NewData(data any) *Logger {
 
 func (l *Logger) WithContext(ctx context.Context) *Logger {
 	return l.WithField(getFields(ctx)...)
+}
+
+func SetLevel(logLevel LogLevel) {
+	Default().SetLevel(logLevel)
 }
 
 func IsLevelEnabled(level LogLevel) bool {

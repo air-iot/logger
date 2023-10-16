@@ -12,15 +12,19 @@ import (
 )
 
 func InitLogger(cfg Config) {
-	slog.SetDefault(newSlog(cfg))
-	defaultLogger.Store(&Logger{logger: slog.Default(), syslog: cfg.Syslog})
+	programLevel := new(slog.LevelVar)
+	programLevel.Set(getLevel(cfg.Level))
+	slog.SetDefault(newSlog(cfg, programLevel))
+	defaultLogger.Store(&Logger{logger: slog.Default(), levelVar: programLevel, syslog: cfg.Syslog})
 }
 
 func NewLogger(cfg Config) *Logger {
-	return &Logger{logger: newSlog(cfg), syslog: cfg.Syslog}
+	programLevel := new(slog.LevelVar)
+	programLevel.Set(getLevel(cfg.Level))
+	return &Logger{logger: newSlog(cfg, programLevel), levelVar: programLevel, syslog: cfg.Syslog}
 }
 
-func newSlog(cfg Config) *slog.Logger {
+func newSlog(cfg Config, lev *slog.LevelVar) *slog.Logger {
 	var out io.Writer
 	out = os.Stdout
 	if cfg.Output != "" {
@@ -41,13 +45,13 @@ func newSlog(cfg Config) *slog.Logger {
 			}
 		}
 	}
-	var programLevel = new(slog.LevelVar)
-	programLevel.Set(getLevel(cfg.Level))
+	//var programLevel = new(slog.LevelVar)
+	//programLevel.Set(getLevel(cfg.Level))
 	switch cfg.Format {
 	case "json":
-		return slog.New(slog.NewJSONHandler(out, &slog.HandlerOptions{Level: programLevel}))
+		return slog.New(slog.NewJSONHandler(out, &slog.HandlerOptions{Level: lev}))
 	default:
-		return slog.New(slog.NewTextHandler(out, &slog.HandlerOptions{Level: programLevel}))
+		return slog.New(slog.NewTextHandler(out, &slog.HandlerOptions{Level: lev}))
 	}
 }
 
