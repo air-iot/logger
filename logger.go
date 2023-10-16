@@ -256,6 +256,7 @@ const (
 	logTypeValue = "__syslog__"
 	traceIdKey   = "traceId"
 	spanIdKey    = "spanId"
+	ExtraKey     = "key"
 )
 
 var (
@@ -270,6 +271,7 @@ type (
 	serviceKey struct{}
 	moduleKey  struct{}
 	projectKey struct{}
+	extraKey   struct{}
 )
 
 // SetVersion 设定版本
@@ -289,6 +291,20 @@ func FromServiceContext(ctx context.Context) string {
 		}
 	}
 	return Default().syslog.ServiceName
+}
+
+func NewExtraKeyContext(ctx context.Context, val string) context.Context {
+	return context.WithValue(ctx, extraKey{}, val)
+}
+
+func FromExtraKeyContext(ctx context.Context) string {
+	v := ctx.Value(extraKey{})
+	if v != nil {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	return ""
 }
 
 func NewModuleContext(ctx context.Context, module string) context.Context {
@@ -420,6 +436,9 @@ func getFields(ctx context.Context) []any {
 	}
 	if v := FromProjectContext(ctx); v != "" {
 		fields = append(fields, ProjectIdKey, v)
+	}
+	if v := FromExtraKeyContext(ctx); v != "" {
+		fields = append(fields, ExtraKey, v)
 	}
 	return fields
 }

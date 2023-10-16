@@ -42,6 +42,11 @@ func TestNewLogger(t *testing.T) {
 	l.Debugln(123)
 	l.WithField("a", 1).Debugln(1234)
 	l.WithField("b", 2).Debugln(12345)
+	l = NewLogger(Config{Level: InfoLevel, Output: "stdout", Format: "json"})
+	l.Debugln(123)
+	l.Infoln(123)
+	l.Warnln(123)
+	l.Errorln(123)
 }
 
 func Test_Slog(t *testing.T) {
@@ -113,5 +118,6 @@ func TestNewServiceContext(t *testing.T) {
 	ctx := NewServiceContext(context.Background(), "sev")
 	ctx = NewStackContext(ctx, fmt.Errorf("stack"))
 	ctx = NewUserIDContext(ctx, "admin")
+	ctx = NewExtraKeyContext(ctx, "extraKey")
 	WithContext(ctx).Println(12)
 }
