@@ -5,7 +5,6 @@ go 1.21.0
 require (
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/sirupsen/logrus v1.5.0
-	go.mongodb.org/mongo-driver v1.12.1
 	go.opentelemetry.io/otel/trace v1.18.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
