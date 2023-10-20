@@ -205,51 +205,6 @@ func NewDataContext(ctx context.Context, data any) *Logger {
 	return WithField(fields...)
 }
 
-//func withSyslogContext(ctx context.Context, data any) *Logger {
-//	spanCtx := trace.SpanContextFromContext(ctx)
-//	var traceID, spanID string
-//	if spanCtx.HasTraceID() {
-//		traceID = spanCtx.TraceID().String()
-//	}
-//	if spanCtx.HasSpanID() {
-//		spanID = spanCtx.SpanID().String()
-//	}
-//	return WithField(logTypeKey, logTypeValue, logIdKey, primitive.NewObjectID().Hex(), ServiceKey, FromServiceContext(ctx),
-//		ProjectIdKey, FromProjectContext(ctx), ModuleKey, FromModuleContext(ctx), LogDataKey, data, traceIdKey, traceID, spanIdKey, spanID)
-//}
-
-//func SyslogDataDebug(ctx context.Context, data any, format string, args ...any) {
-//	withSyslogContext(ctx, data).Debugf(format, args...)
-//}
-//
-//func SyslogDataInfo(ctx context.Context, data any, format string, args ...any) {
-//	withSyslogContext(ctx, data).Infof(format, args...)
-//}
-//
-//func SyslogDataWarn(ctx context.Context, data any, format string, args ...any) {
-//	withSyslogContext(ctx, data).Warnf(format, args...)
-//}
-//
-//func SyslogDataError(ctx context.Context, data any, format string, args ...any) {
-//	withSyslogContext(ctx, data).Errorf(format, args...)
-//}
-//
-//func SyslogDebug(ctx context.Context, format string, args ...any) {
-//	SyslogDataDebug(ctx, "", format, args...)
-//}
-//
-//func SyslogInfo(ctx context.Context, format string, args ...any) {
-//	SyslogDataInfo(ctx, "", format, args...)
-//}
-//
-//func SyslogWarn(ctx context.Context, format string, args ...any) {
-//	SyslogDataWarn(ctx, "", format, args...)
-//}
-//
-//func SyslogError(ctx context.Context, format string, args ...any) {
-//	SyslogDataError(ctx, "", format, args...)
-//}
-
 const (
 	TraceIDKey = "trace_id"
 	UserIDKey  = "user_id"
@@ -266,6 +221,7 @@ const (
 	traceIdKey   = "traceId"
 	spanIdKey    = "spanId"
 	ExtraKey     = "key"
+	GroupKey     = "group"
 )
 
 var (
@@ -281,6 +237,7 @@ type (
 	moduleKey  struct{}
 	projectKey struct{}
 	extraKey   struct{}
+	groupKey   struct{}
 )
 
 // SetVersion 设定版本
@@ -342,6 +299,20 @@ func FromProjectContext(ctx context.Context) string {
 		}
 	}
 	return Default().syslog.ProjectId
+}
+
+func NewGroupContext(ctx context.Context, group string) context.Context {
+	return context.WithValue(ctx, groupKey{}, group)
+}
+
+func FromGroupContext(ctx context.Context) string {
+	v := ctx.Value(groupKey{})
+	if v != nil {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	return ""
 }
 
 // NewTraceIDContext 创建跟踪ID上下文
@@ -448,6 +419,9 @@ func getFields(ctx context.Context) []any {
 	}
 	if v := FromExtraKeyContext(ctx); v != "" {
 		fields = append(fields, ExtraKey, v)
+	}
+	if v := FromGroupContext(ctx); v != "" {
+		fields = append(fields, GroupKey, v)
 	}
 	return fields
 }
