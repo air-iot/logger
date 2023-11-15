@@ -12,7 +12,9 @@ import (
 var defaultLogger atomic.Value
 
 func init() {
-	defaultLogger.Store(&Logger{logger: slog.Default()})
+	programLevel := new(slog.LevelVar)
+	programLevel.Set(slog.LevelInfo)
+	defaultLogger.Store(&Logger{logger: slog.Default(), levelVar: programLevel})
 }
 
 // Default returns the default Logger.

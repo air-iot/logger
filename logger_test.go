@@ -121,7 +121,7 @@ func TestNewServiceContext(t *testing.T) {
 	ctx = NewStackContext(ctx, fmt.Errorf("stack"))
 	ctx = NewUserIDContext(ctx, "admin")
 	ctx = NewExtraKeyContext(ctx, "extraKey")
-	ctx = NewGroupContext(ctx, "group")
+	ctx = NewGroupContext(ctx, "group1")
 	WithContext(ctx).Println(12)
 }
 
