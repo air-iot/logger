@@ -3,10 +3,11 @@ package logger
 import (
 	"context"
 	"fmt"
-	"go.opentelemetry.io/otel/trace"
 	"log/slog"
 	"os"
 	"sync/atomic"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
 var defaultLogger atomic.Value
@@ -16,6 +17,12 @@ func init() {
 	programLevel.Set(slog.LevelInfo)
 	defaultLogger.Store(&Logger{logger: slog.Default(), levelVar: programLevel})
 }
+
+type Focus int
+
+const (
+	FocusNotice Focus = 1
+)
 
 // Default returns the default Logger.
 func Default() *Logger { return defaultLogger.Load().(*Logger) }
@@ -224,6 +231,9 @@ const (
 	spanIdKey    = "spanId"
 	ExtraKey     = "key"
 	GroupKey     = "group"
+	SuggestKey   = "suggest"
+	FocusKey     = "focus"
+	DeviceKey    = "device"
 )
 
 var (
@@ -240,6 +250,9 @@ type (
 	projectKey struct{}
 	extraKey   struct{}
 	groupKey   struct{}
+	suggestKey struct{}
+	focusKey   struct{}
+	deviceKey  struct{}
 )
 
 // SetVersion 设定版本
@@ -317,6 +330,57 @@ func FromGroupContext(ctx context.Context) string {
 	return ""
 }
 
+func NewSuggestContext(ctx context.Context, suggest string) context.Context {
+	return context.WithValue(ctx, suggestKey{}, suggest)
+}
+
+func FromSuggestContext(ctx context.Context) string {
+	v := ctx.Value(suggestKey{})
+	if v != nil {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	return ""
+}
+
+func NewFocusContext(ctx context.Context, f Focus) context.Context {
+	return context.WithValue(ctx, focusKey{}, f)
+}
+
+func FromFocusContext(ctx context.Context) Focus {
+	v := ctx.Value(focusKey{})
+	if v != nil {
+		if s, ok := v.(Focus); ok {
+			return s
+		}
+	}
+	return 0
+}
+
+func NewDeviceContext(ctx context.Context, f string) context.Context {
+	return context.WithValue(ctx, deviceKey{}, f)
+}
+
+func FromDeviceContext(ctx context.Context) string {
+	v := ctx.Value(deviceKey{})
+	if v != nil {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	return ""
+}
+
+func NewErrorContext(ctx context.Context, err error) context.Context {
+	if v, ok := err.(*LogError); ok {
+		ctx = NewSuggestContext(ctx, v.Suggest)
+		ctx = NewFocusContext(ctx, v.Focus)
+		return ctx
+	}
+	return context.WithoutCancel(ctx)
+}
+
 // NewTraceIDContext 创建跟踪ID上下文
 func NewTraceIDContext(ctx context.Context, traceID string) context.Context {
 	return context.WithValue(ctx, traceIDKey{}, traceID)
@@ -386,6 +450,62 @@ func WithContext(ctx context.Context) *Logger {
 	return Default().WithContext(ctx)
 }
 
+func NewPGTContext(ctx context.Context, projectId, groupId, tableId string) context.Context {
+	return NewGroupContext(NewExtraKeyContext(NewProjectContext(ctx, projectId), tableId), groupId)
+}
+
+func NewPGTMContext(ctx context.Context, projectId, groupId, tableId, module string) context.Context {
+	return NewModuleContext(NewGroupContext(NewExtraKeyContext(NewProjectContext(ctx, projectId), tableId), groupId), module)
+}
+
+func NewPGTDContext(ctx context.Context, projectId, groupId, tableId, deviceId string) context.Context {
+	return NewDeviceContext(NewGroupContext(NewExtraKeyContext(NewProjectContext(ctx, projectId), tableId), groupId), deviceId)
+}
+
+func NewPGTDMContext(ctx context.Context, projectId, groupId, tableId, deviceId, module string) context.Context {
+	return NewModuleContext(NewDeviceContext(NewGroupContext(NewExtraKeyContext(NewProjectContext(ctx, projectId), tableId), groupId), deviceId), module)
+}
+
+func NewPTContext(ctx context.Context, projectId, tableId string) context.Context {
+	return NewProjectContext(NewExtraKeyContext(ctx, tableId), projectId)
+}
+
+func NewPTMContext(ctx context.Context, projectId, tableId, module string) context.Context {
+	return NewModuleContext(NewProjectContext(NewExtraKeyContext(ctx, tableId), projectId), module)
+}
+
+func NewGTContext(ctx context.Context, groupId, tableId string) context.Context {
+	return NewGroupContext(NewExtraKeyContext(ctx, tableId), groupId)
+}
+
+func NewGTMContext(ctx context.Context, groupId, tableId, module string) context.Context {
+	return NewModuleContext(NewGroupContext(NewExtraKeyContext(ctx, tableId), groupId), module)
+}
+
+func NewGTDContext(ctx context.Context, groupId, tableId, deviceId string) context.Context {
+	return NewDeviceContext(NewGroupContext(NewExtraKeyContext(ctx, tableId), groupId), deviceId)
+}
+
+func NewGTDMContext(ctx context.Context, groupId, tableId, deviceId, module string) context.Context {
+	return NewModuleContext(NewDeviceContext(NewGroupContext(NewExtraKeyContext(ctx, tableId), groupId), deviceId), module)
+}
+
+func NewTDContext(ctx context.Context, tableId, deviceId string) context.Context {
+	return NewDeviceContext(NewExtraKeyContext(ctx, tableId), deviceId)
+}
+
+func NewTDMContext(ctx context.Context, tableId, deviceId, module string) context.Context {
+	return NewModuleContext(NewDeviceContext(NewExtraKeyContext(ctx, tableId), deviceId), module)
+}
+
+func NewPMContext(ctx context.Context, projectId, module string) context.Context {
+	return NewModuleContext(NewProjectContext(ctx, projectId), module)
+}
+
+func NewTMContext(ctx context.Context, tableId, module string) context.Context {
+	return NewModuleContext(NewExtraKeyContext(ctx, tableId), module)
+}
+
 func getFields(ctx context.Context) []any {
 	if ctx == nil {
 		ctx = context.Background()
@@ -408,6 +528,7 @@ func getFields(ctx context.Context) []any {
 		fields = append(fields, traceIdKey, spanCtx.TraceID().String())
 	}
 	if spanCtx.HasSpanID() {
+
 		fields = append(fields, spanIdKey, spanCtx.SpanID().String())
 	}
 	if v := FromServiceContext(ctx); v != "" {
@@ -424,6 +545,15 @@ func getFields(ctx context.Context) []any {
 	}
 	if v := FromGroupContext(ctx); v != "" {
 		fields = append(fields, GroupKey, v)
+	}
+	if v := FromSuggestContext(ctx); v != "" {
+		fields = append(fields, SuggestKey, v)
+	}
+	if v := FromFocusContext(ctx); v > 0 {
+		fields = append(fields, FocusKey, v)
+	}
+	if v := FromDeviceContext(ctx); v != "" {
+		fields = append(fields, DeviceKey, v)
 	}
 	return fields
 }

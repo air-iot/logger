@@ -122,6 +122,9 @@ func TestNewServiceContext(t *testing.T) {
 	ctx = NewUserIDContext(ctx, "admin")
 	ctx = NewExtraKeyContext(ctx, "extraKey")
 	ctx = NewGroupContext(ctx, "group1")
+	ctx = NewFocusContext(ctx, FocusNotice)
+	ctx = NewSuggestContext(ctx, "suggest")
+	ctx = NewDeviceContext(ctx, "device")
 	WithContext(ctx).Println(12)
 }
 
