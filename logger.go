@@ -229,11 +229,13 @@ const (
 	logTypeValue = "__syslog__"
 	traceIdKey   = "traceId"
 	spanIdKey    = "spanId"
-	ExtraKey     = "key"
+	TableKey     = "table"
+	FlowKey      = "flow"
 	GroupKey     = "group"
 	SuggestKey   = "suggest"
 	FocusKey     = "focus"
-	DeviceKey    = "device"
+	TableDataKey = "tableData"
+	DetailKey    = "detail"
 )
 
 var (
@@ -241,18 +243,20 @@ var (
 )
 
 type (
-	traceIDKey struct{}
-	userIDKey  struct{}
-	tagKey     struct{}
-	stackKey   struct{}
-	serviceKey struct{}
-	moduleKey  struct{}
-	projectKey struct{}
-	extraKey   struct{}
-	groupKey   struct{}
-	suggestKey struct{}
-	focusKey   struct{}
-	deviceKey  struct{}
+	traceIDKey   struct{}
+	userIDKey    struct{}
+	tagKey       struct{}
+	stackKey     struct{}
+	serviceKey   struct{}
+	moduleKey    struct{}
+	projectKey   struct{}
+	tableKey     struct{}
+	flowKey      struct{}
+	groupKey     struct{}
+	suggestKey   struct{}
+	focusKey     struct{}
+	tableDataKey struct{}
+	detailKey    struct{}
 )
 
 // SetVersion 设定版本
@@ -274,12 +278,26 @@ func FromServiceContext(ctx context.Context) string {
 	return Default().syslog.ServiceName
 }
 
-func NewExtraKeyContext(ctx context.Context, val string) context.Context {
-	return context.WithValue(ctx, extraKey{}, val)
+func NewTableContext(ctx context.Context, val string) context.Context {
+	return context.WithValue(ctx, tableKey{}, val)
 }
 
-func FromExtraKeyContext(ctx context.Context) string {
-	v := ctx.Value(extraKey{})
+func FromTableContext(ctx context.Context) string {
+	v := ctx.Value(tableKey{})
+	if v != nil {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	return ""
+}
+
+func NewFlowContext(ctx context.Context, flowId string) context.Context {
+	return context.WithValue(ctx, flowKey{}, flowId)
+}
+
+func FromFlowContext(ctx context.Context) string {
+	v := ctx.Value(flowKey{})
 	if v != nil {
 		if s, ok := v.(string); ok {
 			return s
@@ -358,12 +376,26 @@ func FromFocusContext(ctx context.Context) Focus {
 	return 0
 }
 
-func NewDeviceContext(ctx context.Context, f string) context.Context {
-	return context.WithValue(ctx, deviceKey{}, f)
+func NewTableDataContext(ctx context.Context, f string) context.Context {
+	return context.WithValue(ctx, tableDataKey{}, f)
 }
 
-func FromDeviceContext(ctx context.Context) string {
-	v := ctx.Value(deviceKey{})
+func FromTableDataContext(ctx context.Context) string {
+	v := ctx.Value(tableDataKey{})
+	if v != nil {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	return ""
+}
+
+func NewDetailContext(ctx context.Context, val string) context.Context {
+	return context.WithValue(ctx, detailKey{}, val)
+}
+
+func FromDetailContext(ctx context.Context) string {
+	v := ctx.Value(detailKey{})
 	if v != nil {
 		if s, ok := v.(string); ok {
 			return s
@@ -373,12 +405,13 @@ func FromDeviceContext(ctx context.Context) string {
 }
 
 func NewErrorContext(ctx context.Context, err error) context.Context {
+	ctx = NewDetailContext(ctx, err.Error())
 	if v, ok := err.(*LogError); ok {
 		ctx = NewSuggestContext(ctx, v.Suggest)
 		ctx = NewFocusContext(ctx, v.Focus)
 		return ctx
 	}
-	return context.WithoutCancel(ctx)
+	return ctx
 }
 
 // NewTraceIDContext 创建跟踪ID上下文
@@ -451,51 +484,51 @@ func WithContext(ctx context.Context) *Logger {
 }
 
 func NewPGTContext(ctx context.Context, projectId, groupId, tableId string) context.Context {
-	return NewGroupContext(NewExtraKeyContext(NewProjectContext(ctx, projectId), tableId), groupId)
+	return NewGroupContext(NewTableContext(NewProjectContext(ctx, projectId), tableId), groupId)
 }
 
 func NewPGTMContext(ctx context.Context, projectId, groupId, tableId, module string) context.Context {
-	return NewModuleContext(NewGroupContext(NewExtraKeyContext(NewProjectContext(ctx, projectId), tableId), groupId), module)
+	return NewModuleContext(NewGroupContext(NewTableContext(NewProjectContext(ctx, projectId), tableId), groupId), module)
 }
 
 func NewPGTDContext(ctx context.Context, projectId, groupId, tableId, deviceId string) context.Context {
-	return NewDeviceContext(NewGroupContext(NewExtraKeyContext(NewProjectContext(ctx, projectId), tableId), groupId), deviceId)
+	return NewTableDataContext(NewGroupContext(NewTableContext(NewProjectContext(ctx, projectId), tableId), groupId), deviceId)
 }
 
 func NewPGTDMContext(ctx context.Context, projectId, groupId, tableId, deviceId, module string) context.Context {
-	return NewModuleContext(NewDeviceContext(NewGroupContext(NewExtraKeyContext(NewProjectContext(ctx, projectId), tableId), groupId), deviceId), module)
+	return NewModuleContext(NewTableDataContext(NewGroupContext(NewTableContext(NewProjectContext(ctx, projectId), tableId), groupId), deviceId), module)
 }
 
 func NewPTContext(ctx context.Context, projectId, tableId string) context.Context {
-	return NewProjectContext(NewExtraKeyContext(ctx, tableId), projectId)
+	return NewProjectContext(NewTableContext(ctx, tableId), projectId)
 }
 
 func NewPTMContext(ctx context.Context, projectId, tableId, module string) context.Context {
-	return NewModuleContext(NewProjectContext(NewExtraKeyContext(ctx, tableId), projectId), module)
+	return NewModuleContext(NewProjectContext(NewTableContext(ctx, tableId), projectId), module)
 }
 
 func NewGTContext(ctx context.Context, groupId, tableId string) context.Context {
-	return NewGroupContext(NewExtraKeyContext(ctx, tableId), groupId)
+	return NewGroupContext(NewTableContext(ctx, tableId), groupId)
 }
 
 func NewGTMContext(ctx context.Context, groupId, tableId, module string) context.Context {
-	return NewModuleContext(NewGroupContext(NewExtraKeyContext(ctx, tableId), groupId), module)
+	return NewModuleContext(NewGroupContext(NewTableContext(ctx, tableId), groupId), module)
 }
 
 func NewGTDContext(ctx context.Context, groupId, tableId, deviceId string) context.Context {
-	return NewDeviceContext(NewGroupContext(NewExtraKeyContext(ctx, tableId), groupId), deviceId)
+	return NewTableDataContext(NewGroupContext(NewTableContext(ctx, tableId), groupId), deviceId)
 }
 
 func NewGTDMContext(ctx context.Context, groupId, tableId, deviceId, module string) context.Context {
-	return NewModuleContext(NewDeviceContext(NewGroupContext(NewExtraKeyContext(ctx, tableId), groupId), deviceId), module)
+	return NewModuleContext(NewTableDataContext(NewGroupContext(NewTableContext(ctx, tableId), groupId), deviceId), module)
 }
 
 func NewTDContext(ctx context.Context, tableId, deviceId string) context.Context {
-	return NewDeviceContext(NewExtraKeyContext(ctx, tableId), deviceId)
+	return NewTableDataContext(NewTableContext(ctx, tableId), deviceId)
 }
 
 func NewTDMContext(ctx context.Context, tableId, deviceId, module string) context.Context {
-	return NewModuleContext(NewDeviceContext(NewExtraKeyContext(ctx, tableId), deviceId), module)
+	return NewModuleContext(NewTableDataContext(NewTableContext(ctx, tableId), deviceId), module)
 }
 
 func NewPMContext(ctx context.Context, projectId, module string) context.Context {
@@ -503,7 +536,7 @@ func NewPMContext(ctx context.Context, projectId, module string) context.Context
 }
 
 func NewTMContext(ctx context.Context, tableId, module string) context.Context {
-	return NewModuleContext(NewExtraKeyContext(ctx, tableId), module)
+	return NewModuleContext(NewTableContext(ctx, tableId), module)
 }
 
 func getFields(ctx context.Context) []any {
@@ -540,8 +573,8 @@ func getFields(ctx context.Context) []any {
 	if v := FromProjectContext(ctx); v != "" {
 		fields = append(fields, ProjectIdKey, v)
 	}
-	if v := FromExtraKeyContext(ctx); v != "" {
-		fields = append(fields, ExtraKey, v)
+	if v := FromTableContext(ctx); v != "" {
+		fields = append(fields, TableKey, v)
 	}
 	if v := FromGroupContext(ctx); v != "" {
 		fields = append(fields, GroupKey, v)
@@ -552,8 +585,14 @@ func getFields(ctx context.Context) []any {
 	if v := FromFocusContext(ctx); v > 0 {
 		fields = append(fields, FocusKey, v)
 	}
-	if v := FromDeviceContext(ctx); v != "" {
-		fields = append(fields, DeviceKey, v)
+	if v := FromTableDataContext(ctx); v != "" {
+		fields = append(fields, TableDataKey, v)
+	}
+	if v := FromFlowContext(ctx); v != "" {
+		fields = append(fields, FlowKey, v)
+	}
+	if v := FromDetailContext(ctx); v != "" {
+		fields = append(fields, DetailKey, v)
 	}
 	return fields
 }
