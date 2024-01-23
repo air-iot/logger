@@ -499,6 +499,14 @@ func NewPGTDMContext(ctx context.Context, projectId, groupId, tableId, deviceId,
 	return NewModuleContext(NewTableDataContext(NewGroupContext(NewTableContext(NewProjectContext(ctx, projectId), tableId), groupId), deviceId), module)
 }
 
+func NewPTDMContext(ctx context.Context, projectId, tableId, deviceId, module string) context.Context {
+	return NewModuleContext(NewTableDataContext(NewTableContext(NewProjectContext(ctx, projectId), tableId), deviceId), module)
+}
+
+func NewPTDContext(ctx context.Context, projectId, tableId, deviceId string) context.Context {
+	return NewTableDataContext(NewTableContext(NewProjectContext(ctx, projectId), tableId), deviceId)
+}
+
 func NewPTContext(ctx context.Context, projectId, tableId string) context.Context {
 	return NewProjectContext(NewTableContext(ctx, tableId), projectId)
 }
