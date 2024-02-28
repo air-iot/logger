@@ -407,11 +407,11 @@ func FromDetailContext(ctx context.Context) string {
 func NewErrorContext(ctx context.Context, err error) context.Context {
 	if err != nil {
 		ctx = NewDetailContext(ctx, err.Error())
-	}
-	if v, ok := err.(*LogError); ok {
-		ctx = NewSuggestContext(ctx, v.Suggest)
-		ctx = NewFocusContext(ctx, v.Focus)
-		return ctx
+		if v, ok := err.(*LogError); ok {
+			ctx = NewSuggestContext(ctx, v.Suggest)
+			ctx = NewFocusContext(ctx, v.Focus)
+			return ctx
+		}
 	}
 	return ctx
 }
