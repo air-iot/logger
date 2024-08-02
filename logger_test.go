@@ -13,10 +13,18 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	InitLogger(Config{Level: DebugLevel, Output: "stdout", Format: "json", Syslog: Syslog{
-		ServiceName: "test",
-		ProjectId:   "default",
-	}})
+	InitLogger(Config{
+		Level:         DebugLevel,
+		Output:        "file",
+		OutputFile:    "logs/test.log",
+		Format:        "json",
+		RotationSize:  2,
+		RotationCount: 2,
+		Syslog: Syslog{
+			ServiceName: "test",
+			ProjectId:   "default",
+		},
+	})
 	m.Run()
 }
 
@@ -120,11 +128,9 @@ func TestNewServiceContext(t *testing.T) {
 	ctx := NewServiceContext(context.Background(), "sev")
 	ctx = NewStackContext(ctx, fmt.Errorf("stack"))
 	ctx = NewUserIDContext(ctx, "admin")
-	ctx = NewExtraKeyContext(ctx, "extraKey")
 	ctx = NewGroupContext(ctx, "group1")
 	ctx = NewFocusContext(ctx, FocusNotice)
 	ctx = NewSuggestContext(ctx, "suggest")
-	ctx = NewDeviceContext(ctx, "device")
 	WithContext(ctx).Println(12)
 }
 
@@ -153,4 +159,20 @@ func TestSetLevel(t *testing.T) {
 	SetLevel(InfoLevel)
 	Debugln(2)
 	Infoln(2)
+}
+
+func Test_err(t *testing.T) {
+	ctx := context.Background()
+	WithContext(NewErrorContext(ctx, nil)).Errorln(1)
+}
+
+func Test_file(t *testing.T) {
+	var s string
+	for j := 0; j < 102400; j++ {
+		s += fmt.Sprintf("%d", j)
+	}
+	for i := 0; i < 100; i++ {
+		Infoln(s)
+		time.Sleep(time.Second * 10)
+	}
 }
