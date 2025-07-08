@@ -32,7 +32,7 @@ func TestLog(t *testing.T) {
 	t.Log(IsLevelEnabled(DebugLevel))
 	WithField("field", "field1").Debugf("debug,%d", 1)
 	WithField("field2", "field22").WithField("field3", "field33").Debugln(1)
-	SetLevel(InfoLevel)
+	SetLevel(DebugLevel)
 	Debugf("Debugf,%d", 1)
 	Debugln(1)
 	Infof("Infof,%d", 2)
@@ -48,7 +48,7 @@ func TestLog(t *testing.T) {
 }
 
 func TestNewLogger(t *testing.T) {
-	l := NewLogger(Config{Level: DebugLevel, Output: "stdout", Format: "json"})
+	l := NewLogger(Config{Level: InfoLevel, Output: "stdout", Format: "json"})
 	l.Debugln(123)
 	l.WithField("a", 1).Debugln(1234)
 	l.WithField("b", 2).Debugln(12345)

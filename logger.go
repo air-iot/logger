@@ -43,12 +43,16 @@ func (l *Logger) IsLevelEnabled(lev LogLevel) bool {
 }
 
 func (l *Logger) Debugf(format string, args ...any) {
-	l.logger.Debug(fmt.Sprintf(format, args...))
+	if l.IsLevelEnabled(DebugLevel) {
+		l.logger.Debug(fmt.Sprintf(format, args...))
+	}
 }
 
 func (l *Logger) Debugln(args ...any) {
-	msg := fmt.Sprintln(args...)
-	l.logger.Debug(msg[:len(msg)-1])
+	if l.IsLevelEnabled(DebugLevel) {
+		msg := fmt.Sprintln(args...)
+		l.logger.Debug(msg[:len(msg)-1])
+	}
 }
 
 func (l *Logger) Infof(format string, args ...any) {
