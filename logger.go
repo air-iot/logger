@@ -3,7 +3,7 @@ package logger
 import (
 	"context"
 	"fmt"
-	"log/slog"
+	"golang.org/x/exp/slog"
 	"os"
 	"sync/atomic"
 
@@ -74,22 +74,22 @@ func (l *Logger) Warnln(args ...any) {
 }
 
 func (l *Logger) Errorf(format string, args ...any) {
-	l.logger.Error(fmt.Sprintf(format, args...))
+	l.logger.Error(fmt.Sprintf(format, args...), nil)
 }
 
 func (l *Logger) Errorln(args ...any) {
 	msg := fmt.Sprintln(args...)
-	l.logger.Error(msg[:len(msg)-1])
+	l.logger.Error(msg[:len(msg)-1], nil)
 }
 
 func (l *Logger) Fatalf(format string, args ...any) {
-	l.logger.Error(fmt.Sprintf(format, args...))
+	l.logger.Error(fmt.Sprintf(format, args...), nil)
 	os.Exit(1)
 }
 
 func (l *Logger) Fatalln(args ...any) {
 	msg := fmt.Sprintln(args...)
-	l.logger.Error(msg[:len(msg)-1])
+	l.logger.Error(msg[:len(msg)-1], nil)
 	os.Exit(1)
 }
 

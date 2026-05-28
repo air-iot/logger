@@ -2,10 +2,10 @@ package logger
 
 import (
 	"io"
-	"log/slog"
 	"os"
 	"time"
 
+	"golang.org/x/exp/slog"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -49,9 +49,9 @@ func newSlog(cfg Config, lev *slog.LevelVar) *slog.Logger {
 	//programLevel.Set(getLevel(cfg.Level))
 	switch cfg.Format {
 	case "json":
-		return slog.New(slog.NewJSONHandler(out, &slog.HandlerOptions{Level: lev}))
+		return slog.New(slog.HandlerOptions{Level: lev}.NewJSONHandler(out))
 	default:
-		return slog.New(slog.NewTextHandler(out, &slog.HandlerOptions{Level: lev}))
+		return slog.New(slog.HandlerOptions{Level: lev}.NewTextHandler(out))
 	}
 }
 
